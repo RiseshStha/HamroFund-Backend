@@ -1,22 +1,48 @@
 const Campaign = require('../models/campaignModels');
+const path = require('path');
+const fs = require('fs').promises;
 
 const createCampaign = async (req, res) => {
     try {
-        const { title, description, targetAmount, endDate } = req.body;
+        const { title, description, goal, endDate, category, creator } = req.body;
 
-        if (!title || !description || !targetAmount || !endDate) {
+        if (!title || !description || !goal || !endDate || !category || !creator) {
             return res.status(400).json({
                 success: false,
                 message: "Please provide all required fields"
             });
         }
 
+        if (!req.files?.image) {
+            return res.status(400).json({
+                success: false,
+                message: "Campaign image is required"
+            });
+        }
+
+        // Create campaigns directory if it doesn't exist
+        const uploadDir = path.join(__dirname, '../public/campaigns');
+        try {
+            await fs.access(uploadDir);
+        } catch {
+            await fs.mkdir(uploadDir, { recursive: true });
+        }
+
+        const image = req.files.image;
+        const imageName = `${Date.now()}-${image.name}`;
+        const imageUploadPath = path.join(uploadDir, imageName);
+
+        // Move the file
+        await image.mv(imageUploadPath);
+
         const campaign = await Campaign.create({
             title,
             description,
-            targetAmount,
+            goal,
             endDate,
-            createdBy: req.user.id
+            image: imageName,
+            category,
+            creator // Use creator ID from form data
         });
 
         res.status(201).json({
@@ -28,7 +54,7 @@ const createCampaign = async (req, res) => {
         console.error('Error in createCampaign:', error);
         res.status(500).json({
             success: false,
-            message: "Internal server error"
+            message: error.message || "Internal server error"
         });
     }
 };
@@ -36,7 +62,7 @@ const createCampaign = async (req, res) => {
 const getAllCampaigns = async (req, res) => {
     try {
         const campaigns = await Campaign.find()
-            .populate('createdBy', 'fullName email')
+            .populate('creator', 'name email')
             .sort({ createdAt: -1 });
 
         res.status(200).json({
@@ -55,7 +81,8 @@ const getAllCampaigns = async (req, res) => {
 const getCampaignById = async (req, res) => {
     try {
         const campaign = await Campaign.findById(req.params.id)
-            .populate('createdBy', 'fullName email');
+            .populate('creator', 'name email')
+            .populate('payments');
 
         if (!campaign) {
             return res.status(404).json({
@@ -77,8 +104,101 @@ const getCampaignById = async (req, res) => {
     }
 };
 
+const updateCampaign = async (req, res) => {
+    try {
+        const campaign = await Campaign.findById(req.params.id);
+        
+        if (!campaign) {
+            return res.status(404).json({
+                success: false,
+                message: "Campaign not found"
+            });
+        }
+
+        if (campaign.creator.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: "Not authorized to update this campaign"
+            });
+        }
+
+        let imageName = campaign.image;
+        if (req.files?.image) {
+            // Delete old image
+            const oldImagePath = path.join(__dirname, `../public/campaigns/${campaign.image}`);
+            await fs.unlink(oldImagePath);
+
+            // Upload new image
+            const image = req.files.image;
+            imageName = `${Date.now()}-${image.name}`;
+            const imageUploadPath = path.join(__dirname, `../public/campaigns/${imageName}`);
+            await image.mv(imageUploadPath);
+        }
+
+        const updatedCampaign = await Campaign.findByIdAndUpdate(
+            req.params.id,
+            {
+                ...req.body,
+                image: imageName
+            },
+            { new: true, runValidators: true }
+        );
+
+        res.status(200).json({
+            success: true,
+            message: "Campaign updated successfully",
+            campaign: updatedCampaign
+        });
+    } catch (error) {
+        console.error('Error in updateCampaign:', error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+};
+
+const deleteCampaign = async (req, res) => {
+    try {
+        const campaign = await Campaign.findById(req.params.id);
+        
+        if (!campaign) {
+            return res.status(404).json({
+                success: false,
+                message: "Campaign not found"
+            });
+        }
+
+        if (campaign.creator.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: "Not authorized to delete this campaign"
+            });
+        }
+
+        // Delete campaign image
+        const imagePath = path.join(__dirname, `../public/campaigns/${campaign.image}`);
+        await fs.unlink(imagePath);
+
+        await Campaign.findByIdAndDelete(req.params.id);
+
+        res.status(200).json({
+            success: true,
+            message: "Campaign deleted successfully"
+        });
+    } catch (error) {
+        console.error('Error in deleteCampaign:', error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+};
+
 module.exports = {
     createCampaign,
     getAllCampaigns,
-    getCampaignById
+    getCampaignById,
+    updateCampaign,
+    deleteCampaign
 };

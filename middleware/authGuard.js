@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
+const User = require('../models/userModels');
 
-const authGuard = (req, res, next) => {
+const authGuard = async(req, res, next) => {
     //#.check incoming data
     console.log('Headers:', req.headers);
 
@@ -17,6 +18,9 @@ const authGuard = (req, res, next) => {
     // 4. Authorization format : 'Bearer tokensjdbfjldsabf'
     // 5. Get only token by splitting by 'space' (0->Bearer,1->Token)
     const token = authHeader.split(' ')[1];
+
+    //user added into request
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // 6. If token not found or mismatch, stop the process (res)
     if (!token || token === '') {
