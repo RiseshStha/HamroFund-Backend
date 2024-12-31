@@ -344,5 +344,5 @@ module.exports = {
     forgotPassword,
     verifyOtpAndPassword,
     updateUser,
-    updateProfileImage
+    updateProfileImage,
  };

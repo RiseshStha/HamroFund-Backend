@@ -6,7 +6,8 @@ const {
     updateCampaign,
     getLatestCampaigns,
     deleteCampaign,
-    searchCampaigns 
+    searchCampaigns,
+    getUserCampaigns, 
 } = require('../controllers/campaignController');
 const { authGuard } = require('../middleware/authGuard');
 
@@ -17,8 +18,9 @@ router.get('/all', getAllCampaigns);
 router.get('/latest', getLatestCampaigns);
 
 
+router.get('/get_user_campaign/:id', getUserCampaigns);
 router.get('/:id', getCampaignById);
-router.put('/:id', authGuard, updateCampaign);
+router.put('/update_camp/:id', authGuard, updateCampaign);
 router.delete('/:id', authGuard, deleteCampaign);
 
 

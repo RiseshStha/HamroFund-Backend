@@ -114,57 +114,52 @@ const getCampaignById = async (req, res) => {
 
 const updateCampaign = async (req, res) => {
     try {
-        const campaign = await Campaign.findById(req.params.id);
+      const campaignId = req.params.id;
+      if (!campaignId) {
+        return res.status(400).json({
+          success: false,
+          message: "Campaign ID is required"
+        });
+      }
+  
+      const updateData = { ...req.body };
+      
+      if (req.files?.image) {
+        const image = req.files.image;
+        const imageName = `${Date.now()}-${image.name}`;
+        const imageUploadPath = path.join(__dirname, `../public/campaigns/${imageName}`);
         
-        if (!campaign) {
-            return res.status(404).json({
-                success: false,
-                message: "Campaign not found"
-            });
-        }
-
-        if (campaign.creator.toString() !== req.user._id.toString()) {
-            return res.status(403).json({
-                success: false,
-                message: "Not authorized to update this campaign"
-            });
-        }
-
-        let imageName = campaign.image;
-        if (req.files?.image) {
-            // Delete old image
-            const oldImagePath = path.join(__dirname, `../public/campaigns/${campaign.image}`);
-            await fs.unlink(oldImagePath);
-
-            // Upload new image
-            const image = req.files.image;
-            imageName = `${Date.now()}-${image.name}`;
-            const imageUploadPath = path.join(__dirname, `../public/campaigns/${imageName}`);
-            await image.mv(imageUploadPath);
-        }
-
-        const updatedCampaign = await Campaign.findByIdAndUpdate(
-            req.params.id,
-            {
-                ...req.body,
-                image: imageName
-            },
-            { new: true, runValidators: true }
-        );
-
-        res.status(200).json({
-            success: true,
-            message: "Campaign updated successfully",
-            campaign: updatedCampaign
+        await image.mv(imageUploadPath);
+        updateData.image = imageName;
+      }
+  
+      const campaign = await Campaign.findByIdAndUpdate(
+        campaignId,
+        updateData,
+        { new: true }
+      );
+  
+      if (!campaign) {
+        return res.status(404).json({
+          success: false,
+          message: "Campaign not found"
         });
+      }
+  
+      res.json({
+        success: true,
+        message: "Campaign updated successfully",
+        campaign
+      });
+  
     } catch (error) {
-        console.error('Error in updateCampaign:', error);
-        res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
+      console.error("Update campaign error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error updating campaign"
+      });
     }
-};
+  };
 
 const getLatestCampaigns = async (req, res) => {
     try {
@@ -188,6 +183,23 @@ const getLatestCampaigns = async (req, res) => {
         });
     }
 };
+
+const getUserCampaigns = async (req, res) => {
+    const userId = req.params.id;
+    try {
+      const campaigns = await Campaign.find({ creator: userId });
+      res.json({
+        success: true,
+        campaigns
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error fetching campaigns"
+      });
+    }
+  };
+
 
 const deleteCampaign = async (req, res) => {
     try {
@@ -301,5 +313,6 @@ module.exports = {
     updateCampaign,
     getLatestCampaigns,
     deleteCampaign,
-    searchCampaigns
+    searchCampaigns,
+    getUserCampaigns,
 };
