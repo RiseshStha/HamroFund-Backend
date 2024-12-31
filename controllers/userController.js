@@ -272,14 +272,6 @@ const updateUser = async (req, res) => {
 
         const updatedUser = await userModel.findByIdAndUpdate(userId, updatedData, { new: true });
 
-        const commentUpdateData = {};
-        if (updatedData.fullName) {
-            commentUpdateData.authorName = updatedData.fullName;
-        }
-
-        await commentModels.updateMany({ author: userId },
-            { $set: commentUpdateData });
-
         if (!updatedUser) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
@@ -328,9 +320,6 @@ const updateProfileImage = async (req, res) => {
 
         user.profileImage = imageName;
         await user.save();
-
-        await commentModels.updateMany({ author: userId },
-            { $set: { userImage: imageName } });// updating comment userImage when profile is changed
 
         res.status(200).json({
             success: true,
