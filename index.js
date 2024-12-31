@@ -3,7 +3,11 @@ const express = require("express");
 const mongoose = require("mongoose");
 const connectDB = require("./database/database");
 const cors = require("cors");
-const fileUpload =  require('express-fileupload')
+const fileUpload =  require('express-fileupload');
+require('./models/userModels');
+require('./models/campaignModels');
+
+console.log('Registered models:', mongoose.modelNames());
 
 const app = express();
 

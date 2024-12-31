@@ -1,6 +1,8 @@
 const Campaign = require('../models/campaignModels');
+const User = require('../models/userModels');
 const path = require('path');
 const fs = require('fs').promises;
+
 
 const createCampaign = async (req, res) => {
     try {
@@ -62,8 +64,11 @@ const createCampaign = async (req, res) => {
 const getAllCampaigns = async (req, res) => {
     try {
         const campaigns = await Campaign.find()
-            .populate('creator', 'name email')
-            .sort({ createdAt: -1 });
+        .populate({
+            path: 'creator',
+            select: 'fullName email profileImage'
+        })
+        .sort({ createdAt: -1 });
 
         res.status(200).json({
             success: true,
@@ -81,8 +86,11 @@ const getAllCampaigns = async (req, res) => {
 const getCampaignById = async (req, res) => {
     try {
         const campaign = await Campaign.findById(req.params.id)
-            .populate('creator', 'name email')
-            .populate('payments');
+        .populate({
+            path: 'creator',
+            select: 'fullName email profileImage'
+        })
+        .populate('payments');
 
         if (!campaign) {
             return res.status(404).json({
@@ -158,6 +166,29 @@ const updateCampaign = async (req, res) => {
     }
 };
 
+const getLatestCampaigns = async (req, res) => {
+    try {
+        const campaigns = await Campaign.find()
+            .populate({
+                path: 'creator',
+                select: 'fullName email profileImage'
+            })
+            .sort({ createdAt: -1 })
+            .limit(3);
+
+        res.status(200).json({
+            success: true,
+            campaigns
+        });
+    } catch (error) {
+        console.error('Error in getLatestCampaigns:', error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+};
+
 const deleteCampaign = async (req, res) => {
     try {
         const campaign = await Campaign.findById(req.params.id);
@@ -195,10 +226,80 @@ const deleteCampaign = async (req, res) => {
     }
 };
 
+
+//search campaign
+// In campaignController.js
+
+const searchCampaigns = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 6;
+        const searchQuery = req.query.search || '';
+        const category = req.query.category || '';
+        const sortBy = req.query.sortBy || 'latest'; // 'latest' or 'oldest'
+        
+        // Build query
+        let query = {};
+        
+        // Add search condition if search query exists
+        if (searchQuery) {
+            query.$or = [
+                { title: { $regex: searchQuery, $options: 'i' } },
+                { description: { $regex: searchQuery, $options: 'i' } }
+            ];
+        }
+        
+        // Add category filter if category selected
+        if (category && category !== 'ALL') {
+            query.category = category;
+        }
+
+        // Determine sort order
+        const sortOrder = sortBy === 'latest' ? -1 : 1;
+
+        // Get total count for pagination
+        const total = await Campaign.countDocuments(query);
+        
+        // Fetch campaigns with pagination and sorting
+        const campaigns = await Campaign.find(query)
+            .populate({
+                path: 'creator',
+                select: 'fullName email profileImage'
+            })
+            .sort({ createdAt: sortOrder })
+            .skip((page - 1) * limit)
+            .limit(limit);
+
+        // Get unique categories for filter dropdown
+        const categories = await Campaign.distinct('category');
+        
+        res.status(200).json({
+            success: true,
+            campaigns,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(total / limit),
+                totalItems: total,
+                itemsPerPage: limit
+            },
+            categories,
+            isFiltered: !!(searchQuery || (category && category !== 'ALL'))
+        });
+    } catch (error) {
+        console.error('Error in searchCampaigns:', error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+};
+
 module.exports = {
     createCampaign,
     getAllCampaigns,
     getCampaignById,
     updateCampaign,
-    deleteCampaign
+    getLatestCampaigns,
+    deleteCampaign,
+    searchCampaigns
 };
