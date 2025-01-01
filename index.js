@@ -38,7 +38,7 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 // Routes
 app.use('/api/user', require('./routes/userRoute'));
 app.use('/api/campaign', require('./routes/campaignRoute'));
-app.use('/api/payments', require('./routes/paymentRoute'));
+app.use('/api/payment', require('./routes/paymentRoute'));
 
 
 module.exports = app;

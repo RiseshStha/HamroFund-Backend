@@ -6,7 +6,7 @@ const paymentSchema = new mongoose.Schema({
     ref: 'Campaign',
     required: true
   },
-  donor: {
+  contributor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
@@ -17,17 +17,18 @@ const paymentSchema = new mongoose.Schema({
   },
   esewaTransactionId: {
     type: String,
-    required: true
+    required: true,
+    unique: true
   },
   status: {
     type: String,
-    enum: ['pending', 'completed', 'failed'],
-    default: 'pending'
+    enum: ['PENDING', 'SUCCESS', 'FAILED'],
+    default: 'PENDING'
   },
-  createdAt: {
+  paymentDate: {
     type: Date,
     default: Date.now
-  }
-});
+},
+},{ timestamps: true },);
 
 module.exports = mongoose.model('Payment', paymentSchema);
