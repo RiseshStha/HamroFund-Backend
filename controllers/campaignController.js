@@ -90,7 +90,13 @@ const getCampaignById = async (req, res) => {
             path: 'creator',
             select: 'fullName email profileImage'
         })
-        .populate('payments');
+        .populate({
+            path: 'payments',
+            populate: {
+                path: 'contributor',
+                select: 'fullName email'
+            }
+        });
 
         if (!campaign) {
             return res.status(404).json({

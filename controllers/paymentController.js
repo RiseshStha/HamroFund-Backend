@@ -76,6 +76,7 @@ const verifyPayment = async (req, res) => {
         // Update campaign's raised amount
         const campaign = await Campaign.findById(payment.campaign);
         campaign.raisedAmount += payment.amount;
+        campaign.payments.push(payment._id);
         await campaign.save();
 
         // res.redirect(`http://${process.env.FRONTEND_URL}/my-contributions`);
