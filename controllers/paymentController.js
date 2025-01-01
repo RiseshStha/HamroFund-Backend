@@ -78,6 +78,7 @@ const verifyPayment = async (req, res) => {
         campaign.raisedAmount += payment.amount;
         await campaign.save();
 
+        // res.redirect(`http://${process.env.FRONTEND_URL}/my-contributions`);
         res.json({
             success: true,
             message: 'Payment verified successfully'
@@ -88,6 +89,7 @@ const verifyPayment = async (req, res) => {
             success: false,
             message: 'Payment verification failed'
         });
+        // res.redirect(`http://${process.env.FRONTEND_URL}/payment/failed`);
     }
 };
 
@@ -98,7 +100,14 @@ const getMyContributions = async (req, res) => {
             contributor: userId,
             status: 'SUCCESS'
         })
-        .populate('campaign')
+        .populate({
+            path: 'campaign',
+            select: 'title image description'
+        })
+        .populate({
+            path: 'contributor',
+            select: 'fullName email'
+        })
         .sort('-createdAt');
 
         res.json({
