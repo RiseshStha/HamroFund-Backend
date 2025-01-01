@@ -21,7 +21,7 @@ router.get('/latest', getLatestCampaigns);
 router.get('/get_user_campaign/:id', getUserCampaigns);
 router.get('/:id', getCampaignById);
 router.put('/update_camp/:id', authGuard, updateCampaign);
-router.delete('/:id', authGuard, deleteCampaign);
+router.delete('/:id', deleteCampaign);
 
 
 module.exports = router;

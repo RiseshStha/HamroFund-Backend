@@ -207,8 +207,9 @@ const getUserCampaigns = async (req, res) => {
   };
 
 
-const deleteCampaign = async (req, res) => {
+  const deleteCampaign = async (req, res) => {
     try {
+        const userId = req.query.userId; // Get userId from query params
         const campaign = await Campaign.findById(req.params.id);
         
         if (!campaign) {
@@ -218,16 +219,24 @@ const deleteCampaign = async (req, res) => {
             });
         }
 
-        if (campaign.creator.toString() !== req.user._id.toString()) {
+        // Check if the user is authorized to delete this campaign
+        if (campaign.creator.toString() !== userId) {
             return res.status(403).json({
                 success: false,
                 message: "Not authorized to delete this campaign"
             });
         }
 
-        // Delete campaign image
-        const imagePath = path.join(__dirname, `../public/campaigns/${campaign.image}`);
-        await fs.unlink(imagePath);
+        // Delete campaign image if it exists
+        if (campaign.image) {
+            const imagePath = path.join(__dirname, `../public/campaigns/${campaign.image}`);
+            try {
+                await fs.unlink(imagePath);
+            } catch (error) {
+                console.error('Error deleting image:', error);
+                // Continue with campaign deletion even if image deletion fails
+            }
+        }
 
         await Campaign.findByIdAndDelete(req.params.id);
 
