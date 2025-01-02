@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const userControllers = require("../controllers/userController");
+const { forgotPasswordLimiter } = require('../middleware/rateLimiter');
 
 //making create user api
 router.post('/create', userControllers.createUser);
@@ -12,9 +13,8 @@ router.put('/update_user/:id', userControllers.updateUser);
 
 router.put('/update_user_image/:id', userControllers.updateProfileImage);
 
-// router.post('/forgot_password',userControllers.forgotPassword)
-
-// router.post('/verify_otp',userControllers.verifyOtpAndPassword)
+router.post('/forgot-password', forgotPasswordLimiter, userControllers.forgotPassword);
+router.post('/reset-password', userControllers.resetPassword);
 
 
 module.exports = router;
