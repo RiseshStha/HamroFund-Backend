@@ -4,9 +4,8 @@ const Campaign = require('../models/campaignModels');
 const initiatePayment = async (req, res) => {
     try {
         const { campaignId, amount } = req.body;
-        const userId = req.user.id; // Assuming you have authentication middleware
+        const userId = req.user.id;
 
-        // Validate campaign exists
         const campaign = await Campaign.findById(campaignId);
         if (!campaign) {
             return res.status(404).json({
@@ -15,7 +14,6 @@ const initiatePayment = async (req, res) => {
             });
         }
 
-        // For eSewa test environment
         const path = "https://uat.esewa.com.np/epay/main";
         const params = {
             amt: amount,
@@ -29,8 +27,8 @@ const initiatePayment = async (req, res) => {
             fu: `http://${process.env.FRONTEND_URL}/payment/failed`,  // Failure URL
         };
 
-        // Create payment record
-        const payment = new Payment({
+          // Create payment record
+          const payment = new Payment({
             campaign: campaignId,
             contributor: userId,
             amount: amount,
@@ -39,6 +37,7 @@ const initiatePayment = async (req, res) => {
         });
         await payment.save();
 
+        // Return the payment form data
         res.json({
             success: true,
             data: {
